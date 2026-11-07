@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>برنامج المحل</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mu:#6b7280;--pr:#0f766e;--bd:#e3e6ea;--rd:#b91c1c}
+@media (prefers-color-scheme:dark){:root{--bg:#111418;--card:#1b2026;--tx:#eceff3;--mu:#9aa3ae;--bd:#2a313a;--pr:#2dd4bf;--rd:#f87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;font-size:16px}
+.wrap{max-width:560px;margin:0 auto;padding:12px 12px 90px}
+h1{font-size:18px;margin:6px 0 12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+input,select,button{font:inherit;width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin:4px 0}
+button{background:var(--pr);color:#fff;border:0;font-weight:600}
+button.sec{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+button.del{background:none;color:var(--rd);width:auto;padding:4px 8px;margin:0}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.it{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}
+.mu{color:var(--mu);font-size:13px}
+.tot{font-size:20px;font-weight:700;text-align:center;margin:8px 0}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{background:none;color:var(--mu);border:0;border-radius:0;margin:0;padding:12px 2px;font-size:13px}
+nav button.on{color:var(--pr)}
+.err{color:var(--rd);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const SB_URL="https://gbdojrwoqimohxbymifw.supabase.co";
+const SB_KEY="sb_publishable_wbRliSrTZ-G6fZcL7hjEGA_AOg-38LA";
+const EMAIL="worker@shopapp.com";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>(Math.round(n*100)/100).toLocaleString("ar-EG");
+let items=[],ops=[],cart=[],tab="sell",auth=false,msg="",busy=false,shop=localStorage.getItem("shopname")||"المحل";
+
+async function init(){
+ const {data}=await sb.auth.getSession();auth=!!data.session;
+ if(auth)await load();render();
+}
+async function load(){
+ const a=await sb.from("items").select("*").order("name");
+ if(a.error){msg="مشكلة في الاتصال";if(a.error.code==="PGRST301"||/JWT/.test(a.error.message))await logout();return}
+ items=a.data||[];
+ if(["sell","rsell","rbuy"].includes(tab)){
+  const b=await sb.from("ops").select("total,created_at").eq("type",tab).order("created_at",{ascending:false}).limit(5);
+  ops=b.data||[];
+ }
+}
+function render(){
+ const a=$("#app");
+ if(!auth){a.innerHTML=`<h1>🔒 ${esc(shop)}</h1><div class="card"><input id="pw" type="password" placeholder="كلمة السر" autocomplete="current-password"><button onclick="login()">دخول</button><div class="err" id="e"></div></div>`;return}
+ const tabs=[["sell","بيع"],["rsell","مرتجع بيع"],["rbuy","مرتجع مشتريات"],["items","أصناف"],["set","إعداد"]];
+ a.innerHTML=`<h1>${esc(shop)}</h1>${view()}<nav>${tabs.map(t=>`<button class="${tab===t[0]?"on":""}" onclick="go('${t[0]}')">${t[1]}</button>`).join("")}</nav>`;
+}
+async function login(){
+ const b=document.querySelector("#app button");b.disabled=true;
+ const {error}=await sb.auth.signInWithPassword({email:EMAIL,password:$("#pw").value});
+ if(error){$("#e").textContent="كلمة السر غلط";b.disabled=false;return}
+ auth=true;await load();render();
+}
+async function logout(){await sb.auth.signOut();auth=false;render()}
+async function go(t){tab=t;cart=[];msg="";await load();render()}
+const find=id=>items.find(x=>x.id==id);
+
+function view(){
+ if(tab==="items")return itemsView();
+ if(tab==="set")return setView();
+ const title={sell:"فاتورة بيع",rsell:"مرتجع بيع",rbuy:"مرتجع مشتريات"}[tab];
+ const total=cart.reduce((s,c)=>s+c.qty*c.p,0);
+ return `<div class="card"><b>${title}</b>
+ ${items.length?`<select id="sel">${items.map(x=>`<option value="${x.id}">${esc(x.name)} (${x.qty})</option>`).join("")}</select><div class="row"><input id="q" type="number" min="1" value="1" inputmode="numeric"><button onclick="addCart()">إضافة</button></div>`:`<p class="mu">ضيف أصناف الأول من تبويب أصناف</p>`}
+ <div class="err">${msg}</div></div>
+ ${cart.length?`<div class="card">${cart.map((c,i)=>`<div class="it"><span>${esc(c.name)}<br><span class="mu">${c.qty} × ${money(c.p)}</span></span><span>${money(c.qty*c.p)} <button class="del" onclick="cart.splice(${i},1);render()">✕</button></span></div>`).join("")}<div class="tot">${money(total)} ج</div><button onclick="done()">تأكيد</button></div>`:""}
+ ${ops.length?`<div class="card"><b>آخر العمليات</b>${ops.map(o=>`<div class="it"><span class="mu">${new Date(o.created_at).toLocaleString("ar-EG")}</span><span>${money(o.total)} ج</span></div>`).join("")}</div>`:""}`;
+}
+function addCart(){
+ const x=find($("#sel").value),q=+$("#q").value;if(!x||q<1)return;
+ const p=tab==="rbuy"?+x.buy:+x.price;
+ const inCart=cart.filter(c=>c.id===x.id).reduce((s,c)=>s+c.qty,0);
+ if((tab==="sell"||tab==="rbuy")&&inCart+q>x.qty){msg="الكمية المتاحة "+x.qty;render();return}
+ cart.push({id:x.id,name:x.name,qty:q,p});msg="";render();
+}
+async function done(){
+ if(busy)return;busy=true;
+ const {error}=await sb.rpc("apply_op",{p_type:tab,p_lines:cart.map(c=>({id:c.id,qty:c.qty,p:c.p}))});
+ busy=false;
+ if(error){msg="ماتحفظش، جرب تاني";render();return}
+ cart=[];msg="تم الحفظ ✓";await load();render();
+}
+function itemsView(){
+ return `<div class="card"><b>صنف جديد</b><input id="n" placeholder="اسم الصنف"><div class="row"><input id="pp" type="number" inputmode="decimal" placeholder="سعر البيع"><input id="bp" type="number" inputmode="decimal" placeholder="سعر الشراء"></div><input id="qq" type="number" inputmode="numeric" placeholder="الكمية"><button onclick="addItem()">حفظ الصنف</button><div class="err">${msg}</div></div>
+ <div class="card">${items.length?items.map(x=>`<div class="it"><span>${esc(x.name)}<br><span class="mu">بيع ${money(x.price)} · شراء ${money(x.buy)}</span></span><span>${x.qty} <button class="del" onclick="delItem(${x.id})">✕</button></span></div>`).join(""):'<p class="mu">لسه مفيش أصناف</p>'}</div>`;
+}
+async function addItem(){
+ const name=$("#n").value.trim();if(!name){msg="اكتب اسم الصنف";render();return}
+ const {error}=await sb.from("items").insert({name,price:+$("#pp").value||0,buy:+$("#bp").value||0,qty:+$("#qq").value||0});
+ msg=error?"ماتحفظش، جرب تاني":"";await load();render();
+}
+async function delItem(id){if(confirm("مسح الصنف؟")){await sb.from("items").delete().eq("id",id);await load();render()}}
+function setView(){
+ return `<div class="card"><b>اسم المحل</b><input id="sn" value="${esc(shop)}"><button onclick="shop=$('#sn').value||'المحل';localStorage.setItem('shopname',shop);render()">حفظ</button></div>
+ <div class="card"><button class="sec" onclick="logout()">تسجيل خروج</button></div>`;
+}
+init();
+</script>
+</body>
+</html>
