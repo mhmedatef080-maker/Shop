@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فحص</title></head>
+<body style="font:17px system-ui;padding:14px">
+<h3>فحص التطبيق</h3><pre id="o" style="white-space:pre-wrap">جاري الفحص…</pre>
+<button id="b1" style="font:inherit;padding:14px;width:100%;margin:6px 0">1) مسح الكاش وعامل الأوفلاين (آمن)</button>
+<button id="b2" style="font:inherit;padding:14px;width:100%;margin:6px 0">2) مسح كل البيانات المحلية</button>
+<script>
+const o=document.getElementById('o'),L=[];const p=s=>{L.push(s);o.textContent=L.join('\n')};
+(async()=>{
+ p('النت: '+(navigator.onLine?'شغال':'مقطوع'));
+ try{const r=await fetch('pro.html?'+Date.now(),{cache:'no-store'});const t=await r.text();
+  p('pro.html: '+r.status+' · '+t.length+' حرف');
+  p('آخره </html>: '+(t.trim().endsWith('</html>')?'نعم':'لا'));
+  p('نسخة الوحدات: '+(t.includes('p_units')?'موجودة':'مش موجودة'));
+ }catch(e){p('تحميل pro.html فشل')}
+ try{await fetch('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js',{mode:'no-cors'});p('مكتبة supabase: وصلت')}catch(e){p('مكتبة supabase: ما وصلتش')}
+ try{p('عامل أوفلاين: '+(await navigator.serviceWorker.getRegistrations()).length+' · كاش: '+(await caches.keys()).length)}catch(e){}
+ try{const s=JSON.parse(localStorage.pos||'{}');p('محفوظ على التليفون: أصناف '+(s.items||[]).length+' · وحدات '+(s.units||[]).length+' · في الانتظار '+(s.q||[]).length)}catch(e){p('بيانات محفوظة تالفة')}
+})();
+async function clr(){try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister())}catch(e){}try{(await caches.keys()).forEach(k=>caches.delete(k))}catch(e){}}
+document.getElementById('b1').onclick=async()=>{await clr();location.href='pro.html?'+Date.now()};
+document.getElementById('b2').onclick=async()=>{if(!confirm('هيمسح كل المحفوظ على التليفون'))return;await clr();localStorage.removeItem('pos');location.href='pro.html?'+Date.now()};
+</script></body></html>
