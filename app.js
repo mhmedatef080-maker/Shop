@@ -1,0 +1,190 @@
+const U="https://gbdojrwoqimohxbymifw.supabase.co",K="sb_publishable_wbRliSrTZ-G6fZcL7hjEGA_AOg-38LA";
+const sb=supabase.createClient(U,K);
+const $=s=>document.querySelector(s),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),m=n=>(Math.round(n*100)/100).toLocaleString('ar-EG');
+const qr=n=>Math.round(n*1000)/1000;
+let S={items:[],units:[],custs:[],q:[],inv:[],seq:0,shop:'الكاشير',bad:0};
+try{Object.assign(S,JSON.parse(localStorage.pos))}catch(e){}
+if(!S.units)S.units=[];
+const sv=()=>{try{localStorage.pos=JSON.stringify(S)}catch(e){}};
+let role=localStorage.pr||'w',tab='sell',ty='sell',mode='r',cust='',cart=[],auth=localStorage.pa==='1',busy=0,msg='',edit=null,nl=0,lp=0;
+const O=()=>role=='o';
+const TL={sell:'بيع',rsell:'مرتجع بيع',rbuy:'مرتجع مشتريات'};
+const lw=x=>x.qty<=0||(+x.minq>0&&x.qty<=+x.minq);
+const low=()=>S.items.filter(x=>+x.minq>0&&x.qty<=+x.minq);
+const ku=x=>x.unit=='k'?' كجم':'';
+const uOf=id=>S.units.filter(u=>u.item==id);
+function stk(x){let t=qr(x.qty)+ku(x);const us=uOf(x.id).filter(u=>+u.factor>1).sort((a,b)=>b.factor-a.factor);if(us.length&&x.qty>0){const u=us[0],n=Math.floor(x.qty/u.factor);if(n>0)t+=' = '+n+' '+u.name+(x.qty%u.factor?' +'+qr(x.qty-n*u.factor):'')}return t}
+const dupBc=(bc,exItem)=>S.items.some(x=>x.barcode===bc&&x.id!=exItem)||S.units.some(u=>u.barcode===bc);
+
+function hd(){const s=$('h1 small');if(!s)return;const n=S.q.length;s.className=nl||n?'w':'ok';s.textContent=nl?'⚠ سجّل خروج ودخول':n?'⏳ '+n+' في الانتظار':'✓ متزامن'}
+function render(){
+ const a=$('#a');
+ if(!auth){a.innerHTML=`<h1>🔒 ${esc(S.shop)}</h1><div class="c"><select id="rl"><option value="w">موظف</option><option value="o">صاحب المحل</option></select><input id="pw" type="password" placeholder="كلمة السر"><button onclick="login()">دخول</button><div class="e" id="e"></div></div>`;return}
+ const n=low().length,T=[['sell','فاتورة'],['items','أصناف'],['cust','عملاء'],['hist','الفواتير'],['low','نواقص'+(n?' ('+n+')':'')],['set','إعداد']];
+ a.innerHTML=`<h1>${esc(S.shop)} <small></small></h1>`+({sell:vSell,items:vItems,cust:vCust,hist:vHist,low:vLow,set:vSet}[tab])()+`<nav>${T.map(t=>`<button class="${tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav>`;
+ hd();
+}
+function go(t){tab=t;msg='';edit=null;render()}
+async function login(){
+ const b=$('button'),r=$('#rl').value;b.disabled=true;
+ const {error}=await sb.auth.signInWithPassword({email:r=='o'?'owner@shopapp.com':'worker@shopapp.com',password:$('#pw').value});
+ if(error){$('#e').textContent=navigator.onLine?'كلمة السر غلط':'محتاج نت للدخول أول مرة';b.disabled=false;return}
+ role=r;localStorage.pr=r;
+ if(r!='o'){S.items.forEach(x=>delete x.buy);S.inv=S.inv.filter(x=>x.t!='rbuy'||!x.no)}
+ auth=true;nl=0;localStorage.pa='1';render();sync();
+}
+function out(){if(S.q.length&&!confirm('في عمليات لسه ما اتبعتتش. تخرج برضه؟'))return;sb.auth.signOut();auth=false;localStorage.pa='';render()}
+
+function pr(x,u){
+ if(ty=='rbuy')return +x.buy*(u?+u.factor:1);
+ const b=mode=='w'&&+x.wholesale?+x.wholesale:+x.retail;
+ if(!u)return b;
+ const up=mode=='w'&&+u.wholesale?+u.wholesale:+u.retail;
+ return up||b*u.factor;
+}
+function lookup(q){
+ q=q.trim();if(!q)return[];
+ const lc=q.toLowerCase(),out=[];
+ S.items.forEach(x=>{if(x.barcode===q)out.push({x,u:null});uOf(x.id).forEach(u=>{if(u.barcode===q)out.push({x,u})})});
+ if(out.length)return out;
+ S.items.forEach(x=>{if((x.name||'').toLowerCase().includes(lc)){out.push({x,u:null});uOf(x.id).forEach(u=>out.push({x,u}))}});
+ return out.slice(0,20);
+}
+function vSell(){
+ const tot=cart.reduce((s,x)=>s+x.q*x.p,0);
+ return `<div class="c"><select onchange="ty=this.value;cart=[];render()">${Object.entries(TL).filter(([k])=>O()||k!='rbuy').map(([k,v])=>`<option value="${k}" ${k==ty?'selected':''}>${v}</option>`).join('')}</select>
+ ${ty!='rbuy'?`<div class="r"><button class="${mode=='r'?'':'sec'}" onclick="mode='r';reprice()">تجزئة</button><button class="${mode=='w'?'':'sec'}" onclick="mode='w';reprice()">جملة</button></div>
+ <select onchange="cust=this.value"><option value="">عميل نقدي</option>${S.custs.map(c=>`<option value="${c.id}" ${c.id==cust?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`:''}
+ <div class="r"><input id="sq" placeholder="ابحث بالاسم أو الباركود" oninput="lst()" onkeydown="if(event.key=='Enter')pick()"><button class="sec" style="flex:0 0 auto;width:auto" onclick="scan(c=>{$('#sq').value=c;pick()})">📷</button></div><div id="res"></div></div>
+ <div class="c"><b>فاتورة رقم م${S.seq+1}</b>${cart.length?cart.map((x,i)=>`<div class="it"><span>${esc(x.n)}<br><span class="mu">${m(x.p)} ج${x.k?' / كجم':''}${x.f>1?' · = '+qr(x.q*x.f)+' وحدة':''}</span></span><span class="q">${x.k?`<button class="sec qb" onclick="qty(${i},0,0.25)">¼</button><button class="sec qb" onclick="qty(${i},0,0.5)">½</button><button class="sec qb" onclick="qty(${i},0,1)">١</button>`:`<button class="sec" onclick="qty(${i},-1)">−</button>`}<input type="number" step="any" inputmode="decimal" value="${x.q}" onchange="qty(${i},0,this.value)">${x.k?'':`<button class="sec" onclick="qty(${i},1)">+</button>`}<button class="del" onclick="cart.splice(${i},1);render()">✕</button></span></div>`).join('')+`<div class="tot">${m(tot)} ج</div><button onclick="done()">تأكيد ${TL[ty]}</button>`:'<p class="mu">الفاتورة فاضية</p>'}<div class="e">${msg}</div></div>`;
+}
+function lst(){const r=lookup($('#sq').value);$('#res').innerHTML=r.map(({x,u})=>`<div class="it" onclick="add('${x.id}','${u?u.id:''}')"><span>${esc(x.name)}${u?' - '+esc(u.name):''}<br><span class="mu">${esc((u?u.barcode:x.barcode)||'')}</span></span><span>${m(pr(x,u))} ج <span class="mu ${lw(x)?'e':''}">(${stk(x)})</span></span></div>`).join('')}
+function pick(){const r=lookup($('#sq').value);if(r.length)add(r[0].x.id,r[0].u?r[0].u.id:'');else{msg='مفيش صنف بالاسم ده';render()}}
+function add(id,uid){
+ const x=S.items.find(i=>i.id==id);if(!x)return;
+ const u=uid?S.units.find(v=>v.id==uid):null;
+ const c=cart.find(i=>i.id==id&&i.uid==(uid||''));
+ if(c)c.q=qr(c.q+(c.k?0.25:1));else cart.push({id,uid:uid||'',n:x.name+(u?' - '+u.name:''),q:1,p:pr(x,u),f:u?+u.factor:1,k:!u&&x.unit=='k'});
+ msg='';render();
+}
+function reprice(){cart.forEach(c=>{const x=S.items.find(i=>i.id==c.id);if(!x)return;const u=c.uid?S.units.find(v=>v.id==c.uid):null;c.p=pr(x,u)});render()}
+function qty(i,d,v){const c=cart[i];c.q=v!==undefined?Math.max(0,qr(+v||0)):Math.max(0,qr(c.q+d));if(!c.q)cart.splice(i,1);render()}
+function done(){
+ if(!cart.length)return;
+ const uid=crypto.randomUUID(),c=S.custs.find(x=>x.id==cust),cn=ty=='rbuy'?'مورد':c?c.name:'نقدي',
+ tot=Math.round(cart.reduce((s,x)=>s+x.q*x.p,0)*100)/100,sg=ty=='rsell'?1:-1,ts=new Date().toISOString();
+ const ln=cart.map(x=>({id:x.id,n:x.n,q:qr(x.q*x.f),uq:x.q,f:x.f,p:x.p,u:x.uid}));
+ ln.forEach(l=>{const it=S.items.find(i=>i.id==l.id);if(it)it.qty=qr(it.qty+sg*l.q)});
+ S.seq++;S.inv.unshift({uid,no:null,tmp:'م'+S.seq,t:ty,cn,tot,ts});
+ S.q.push({k:'inv',v:{p_uid:uid,p_type:ty,p_mode:mode,p_cust:ty!='rbuy'&&c?c.id:null,p_cname:cn,p_total:tot,p_lines:ln,p_ts:ts}});
+ cart=[];msg='تم الحفظ ✓';sv();render();sync();
+}
+
+function vItems(){
+ const rows=own=>S.items.map(x=>`<div class="it"${own?` onclick="edit='${x.id}';msg='';render();scrollTo(0,0)"`:''}><span>${esc(x.name)}<br><span class="mu">${m(x.retail)} / ${m(x.wholesale)}${x.unit=='k'?' للكيلو':''} · ${esc(x.barcode||'')}${uOf(x.id).length?' · '+uOf(x.id).length+' وحدة':''}</span></span><span class="${lw(x)?'e':''}">${stk(x)}${own?` <button class="del" onclick="event.stopPropagation();delItem('${x.id}')">✕</button>`:''}</span></div>`).join('')||'<p class="mu">لسه مفيش أصناف</p>';
+ if(!O())return `<div class="c">${rows(0)}</div>`;
+ const e=edit?S.items.find(x=>x.id==edit):null,us=e?uOf(e.id):[],bu=e&&e.unit=='k'?'كجم':'قطعة';
+ return `<div class="c"><b>${e?'تعديل صنف':'صنف جديد'}</b><input id="n" placeholder="اسم الصنف" value="${esc(e?e.name:'')}">
+ <select id="un"><option value="p" ${e&&e.unit=='k'?'':'selected'}>يُباع بالقطعة</option><option value="k" ${e&&e.unit=='k'?'selected':''}>يُباع بالكيلو (الأسعار للكيلو)</option></select>
+ <div class="r"><input id="bc" placeholder="الباركود" value="${esc(e?e.barcode:'')}"><button class="sec" style="flex:0 0 auto;width:auto" onclick="scan(c=>$('#bc').value=c)">📷</button></div>
+ <div class="r"><input id="rp" type="number" step="any" inputmode="decimal" placeholder="سعر التجزئة" value="${e?e.retail:''}"><input id="wp" type="number" step="any" inputmode="decimal" placeholder="سعر الجملة" value="${e?e.wholesale:''}"></div>
+ <div class="r"><input id="bp" type="number" step="any" inputmode="decimal" placeholder="سعر الشراء" value="${e?e.buy:''}"><input id="mq" type="number" step="any" inputmode="decimal" placeholder="الحد الأدنى" value="${e&&e.minq?e.minq:''}"></div>
+ <div class="r"><input id="qq" type="number" step="any" inputmode="decimal" placeholder="${e?'كمية إضافية':'الكمية'}">${e&&us.length?`<select id="qu"><option value="1">${bu}</option>${us.map(u=>`<option value="${u.factor}">${esc(u.name)} (${u.factor})</option>`).join('')}</select>`:''}</div>
+ <button onclick="saveItem()">حفظ</button>${e?`<button class="sec" onclick="edit=null;render()">إلغاء</button>`:''}<div class="e">${msg}</div></div>
+ ${e?`<div class="c"><b>وحدات التغليف</b><p class="mu">المخزون والأسعار الأساسية بوحدة الصنف (${bu}). كل وحدة ليها باركودها.</p>${us.map(u=>`<div class="it"><span>${esc(u.name)} = ${u.factor} ${bu}<br><span class="mu">${esc(u.barcode||'')} · ${m(u.retail)} / ${m(u.wholesale)}</span></span><button class="del" onclick="delUnit('${u.id}')">✕</button></div>`).join('')}
+ <input id="un_n" placeholder="اسم الوحدة (كرتونة / باكيت / شكارة)"><div class="r"><input id="un_f" type="number" step="any" inputmode="decimal" placeholder="تساوي كام ${bu}"><input id="un_b" placeholder="باركود الوحدة"></div><div class="r"><input id="un_r" type="number" step="any" inputmode="decimal" placeholder="سعر التجزئة"><input id="un_w" type="number" step="any" inputmode="decimal" placeholder="سعر الجملة"></div><button onclick="addUnit()">إضافة وحدة</button></div>`:''}
+ <div class="c">${rows(1)}</div>`;
+}
+function saveItem(){
+ const name=$('#n').value.trim();if(!name){msg='اكتب اسم الصنف';render();return}
+ const bc=$('#bc').value.trim()||null;
+ if(bc&&dupBc(bc,edit)){msg='الباركود ده مستخدم قبل كده';render();return}
+ const f={name,barcode:bc,retail:+$('#rp').value||0,wholesale:+$('#wp').value||0,minq:+$('#mq').value||0,unit:$('#un').value},b=+$('#bp').value||0,d=qr((+$('#qq').value||0)*(+($('#qu')?$('#qu').value:1)||1));
+ if(edit){const x=S.items.find(i=>i.id==edit);Object.assign(x,f,{buy:b});x.qty=qr(x.qty+d);S.q.push({k:'item',v:Object.assign({id:edit},f)},{k:'cost',v:{id:edit,buy:b}});if(d)S.q.push({k:'adj',id:edit,d});edit=null}
+ else{const id=crypto.randomUUID();S.items.push(Object.assign({id,qty:d,buy:b},f));S.items.sort((a,b)=>a.name.localeCompare(b.name));S.q.push({k:'item',v:Object.assign({id,qty:d},f)},{k:'cost',v:{id,buy:b}})}
+ msg='';sv();render();sync();
+}
+function addUnit(){
+ if(!edit)return;
+ const name=$('#un_n').value.trim(),f=+$('#un_f').value,bc=$('#un_b').value.trim()||null;
+ if(!name||!(f>0)){msg='اكتب اسم الوحدة وتساوي كام';render();return}
+ if(bc&&dupBc(bc,null)){msg='الباركود ده مستخدم قبل كده';render();return}
+ const u={id:crypto.randomUUID(),item:edit,name,barcode:bc,factor:f,retail:+$('#un_r').value||0,wholesale:+$('#un_w').value||0};
+ S.units.push(u);S.q.push({k:'unit',v:u});msg='';sv();render();sync();
+}
+function delUnit(id){if(!confirm('مسح الوحدة؟'))return;S.units=S.units.filter(u=>u.id!=id);S.q.push({k:'delunit',id});sv();render();sync()}
+function delItem(id){if(!confirm('مسح الصنف؟'))return;S.items=S.items.filter(x=>x.id!=id);S.units=S.units.filter(u=>u.item!=id);S.q.push({k:'del',id});sv();render();sync()}
+function vCust(){return `<div class="c"><b>عميل جديد</b><input id="cn" placeholder="الاسم"><input id="cp" type="tel" placeholder="التليفون"><button onclick="addCust()">حفظ</button><div class="e">${msg}</div></div><div class="c">${S.custs.map(x=>`<div class="it"><span>${esc(x.name)}</span><span class="mu">${esc(x.phone||'')}</span></div>`).join('')||'<p class="mu">لسه مفيش عملاء</p>'}</div>`}
+function addCust(){const name=$('#cn').value.trim();if(!name){msg='اكتب الاسم';render();return}const v={id:crypto.randomUUID(),name,phone:$('#cp').value.trim()||null};S.custs.push(v);S.q.push({k:'cust',v});msg='';sv();render();sync()}
+function vHist(){return `<div class="c">${S.inv.map(x=>`<div class="it"><span><b>${x.no?'#'+x.no:x.tmp+' ⏳'}</b> ${TL[x.t]||''}<br><span class="mu">${esc(x.cn||'')} · ${new Date(x.ts).toLocaleString('ar-EG')}</span></span><span>${m(x.tot)} ج</span></div>`).join('')||'<p class="mu">مفيش فواتير</p>'}</div>`}
+function vLow(){const L=low();return `<div class="c"><b>النواقص (${L.length})</b>${L.map(x=>`<div class="it"><span>${esc(x.name)}<br><span class="mu">الحد الأدنى ${x.minq}</span></span><span class="e">${stk(x)}</span></div>`).join('')||'<p class="mu">مفيش نواقص ✓</p>'}${L.length?`<button onclick="cpLow()">نسخ القائمة للواتساب</button>`:''}</div>`}
+function cpLow(){const t=low().map(x=>x.name+' (الموجود '+stk(x)+')').join('\n');navigator.clipboard.writeText('النواقص:\n'+t).then(()=>alert('اتنسخت'),()=>alert('ما اتنسختش'))}
+function vImp(){return `<div class="c"><b>استيراد أصناف</b><p class="mu">كل سطر صنف:<br>الاسم، الباركود، التجزئة، الجملة، الشراء، الكمية، الحد الأدنى، الوحدة<br>الوحدة اختيارية: اكتب كيلو للأصناف بالكيلو. الباركود ممكن يتسيب فاضي. الفاصل فاصلة أو Tab.</p><textarea id="imp" rows="8" placeholder="صابون سائل 1 لتر،،45،40،35،20،5"></textarea><button onclick="doImp()">استيراد</button><div class="e">${msg}</div></div>`}
+function ad(s){return String(s==null?'':s).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g,'.')}
+function num(v){return parseFloat(ad(v).replace(/[^\d.]/g,''))||0}
+function doImp(){
+ const L=$('#imp').value.split('\n').map(s=>s.trim()).filter(Boolean),add=[];let dup=0;
+ L.forEach(l=>{
+  const p=l.split(/[,،\t]/).map(s=>s.trim()),name=p[0];
+  if(!name||/^(الاسم|name)$/i.test(name))return;
+  const bc=ad(p[1]).trim()||null;
+  const same=x=>(bc&&x.barcode===bc)||x.name===name;
+  if(S.items.some(same)||add.some(same)){dup++;return}
+  const un=ad(p[7]).trim();
+  add.push({id:crypto.randomUUID(),name,barcode:bc,retail:num(p[2]),wholesale:num(p[3]),buy:num(p[4]),qty:num(p[5]),minq:num(p[6]),unit:/^(ك|كيلو|كجم|كج|kg|k)$/i.test(un)?'k':'p'});
+ });
+ if(!add.length){msg=dup?'كلهم متكررين ('+dup+')':'مفيش أصناف في السطور دي';render();return}
+ if(!confirm('هيتضاف '+add.length+' صنف'+(dup?' (واتخطى '+dup+' متكرر)':'')))return;
+ add.forEach(x=>S.items.push(x));
+ S.items.sort((a,b)=>a.name.localeCompare(b.name));
+ for(let i=0;i<add.length;i+=200){const c=add.slice(i,i+200);S.q.push({k:'item',v:c.map(x=>({id:x.id,name:x.name,barcode:x.barcode,retail:x.retail,wholesale:x.wholesale,qty:x.qty,minq:x.minq,unit:x.unit}))},{k:'cost',v:c.map(x=>({id:x.id,buy:x.buy}))})}
+ msg='اتضاف '+add.length+' صنف ✓';sv();render();sync();
+}
+function vSet(){return (O()?`<div class="c"><b>اسم المحل</b><input id="sn" value="${esc(S.shop)}"><button onclick="S.shop=$('#sn').value||'الكاشير';sv();render()">حفظ</button></div>`+vImp():'')+`<div class="c"><p class="mu">الدخول كـ: ${O()?'صاحب المحل':'موظف'}</p><p class="mu">في الانتظار: ${S.q.length}${S.bad?' · فشل: '+S.bad:''}</p><button onclick="sync()">مزامنة الآن</button><button class="sec" onclick="out()">تسجيل خروج</button></div>`}
+
+function scan(cb){
+ if(!('BarcodeDetector' in window)){alert('الكاميرا مش مدعومة في المتصفح ده، اكتب الباركود');return}
+ const o=document.createElement('div');o.id='ov';o.innerHTML='<video playsinline muted></video><button onclick="stopScan()">إغلاق</button>';document.body.appendChild(o);
+ const v=o.firstChild,d=new BarcodeDetector();
+ navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(st=>{
+  v.srcObject=st;v.play();o.st=st;
+  o.t=setInterval(async()=>{try{const r=await d.detect(v);if(r.length){stopScan();cb(r[0].rawValue)}}catch(e){}},300);
+ }).catch(()=>{stopScan();alert('اسمح للكاميرا من إعدادات المتصفح')});
+}
+function stopScan(){const o=$('#ov');if(!o)return;clearInterval(o.t);if(o.st)o.st.getTracks().forEach(t=>t.stop());o.remove()}
+
+async function sync(){
+ if(busy||!auth)return;busy=1;
+ try{
+  const {data}=await sb.auth.getSession();
+  if(!data.session){nl=1;hd();busy=0;return}
+  nl=0;
+  while(S.q.length){
+   const o=S.q[0];let r;
+   if(o.k=='item')r=await sb.from('p_items').upsert(o.v);
+   else if(o.k=='cost')r=await sb.from('p_costs').upsert(o.v);
+   else if(o.k=='unit')r=await sb.from('p_units').upsert(o.v);
+   else if(o.k=='delunit')r=await sb.from('p_units').delete().eq('id',o.id);
+   else if(o.k=='cust')r=await sb.from('p_customers').upsert(o.v);
+   else if(o.k=='del'){r=await sb.from('p_items').delete().eq('id',o.id);if(!r.error)await sb.from('p_costs').delete().eq('id',o.id)}
+   else if(o.k=='adj')r=await sb.rpc('p_adj',{p_id:o.id,p_d:o.d});
+   else r=await sb.rpc('p_apply',o.v);
+   if(r.error){if(r.status===0||/fetch|network/i.test(r.error.message||''))throw 0;S.bad++;S.q.shift();sv();continue}
+   if(o.k=='inv'){const x=S.inv.find(i=>i.uid==o.v.p_uid);if(x)x.no=r.data}
+   S.q.shift();sv();hd();
+  }
+  const [a,b,c,d,e]=await Promise.all([sb.from('p_items').select('*').order('name'),sb.from('p_customers').select('*').order('name'),sb.from('p_invoices').select('no,uid,type,cust_name,total,created_at').order('no',{ascending:false}).limit(30),O()?sb.from('p_costs').select('*'):Promise.resolve({data:[]}),sb.from('p_units').select('*')]);
+  if(S.q.length){busy=0;return sync()}
+  if(!a.error&&!b.error){
+   const cm={};if(d.error)S.items.forEach(x=>cm[x.id]=x.buy);else(d.data||[]).forEach(z=>cm[z.id]=+z.buy);
+   S.items=a.data.map(x=>Object.assign({},x,{qty:+x.qty,retail:+x.retail,wholesale:+x.wholesale,minq:+x.minq||0,unit:x.unit||'p'},O()?{buy:cm[x.id]||0}:{}));S.custs=b.data;lp=Date.now()}
+  if(!e.error)S.units=e.data.map(u=>Object.assign({},u,{factor:+u.factor,retail:+u.retail,wholesale:+u.wholesale}));
+  if(!c.error){S.inv=S.inv.filter(x=>!x.no).concat(c.data.map(x=>({uid:x.uid,no:x.no,t:x.type,cn:x.cust_name,tot:+x.total,ts:x.created_at})))}
+  sv();
+ }catch(e){}
+ busy=0;hd();if(tab=='sell'&&$('#sq'))lst();
+}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+addEventListener('online',sync);
+setInterval(()=>{if(S.q.length||Date.now()-lp>12e4)sync()},2e4);
+render();sync();
