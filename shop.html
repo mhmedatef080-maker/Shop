@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f766e"><title>المتجر</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#1b1f24;font:16px system-ui,Tahoma,Arial,sans-serif}
+.w{max-width:600px;margin:auto;padding:12px 12px 90px}
+h1{font-size:20px;margin:8px 0;text-align:center}.nt{text-align:center;color:#0f766e;font-size:14px;margin-bottom:8px}
+input,select,button{font:inherit;width:100%;padding:11px;border-radius:10px;border:1px solid #e3e6ea;background:#fff;color:#1b1f24;margin:4px 0}
+button{background:#0f766e;color:#fff;border:0;font-weight:600}button.sec{background:#fff;color:#1b1f24;border:1px solid #e3e6ea}
+.ch{display:flex;gap:6px;overflow-x:auto;padding:4px 0}.ch button{width:auto;white-space:nowrap;padding:8px 14px;margin:0}
+.p{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;margin:8px 0;display:flex;flex-direction:column;gap:6px}
+.pr{display:flex;justify-content:space-between;align-items:center;gap:8px}.mu{color:#6b7280;font-size:13px}.out{color:#b91c1c;font-size:14px}
+.bar{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#fff;border-top:1px solid #e3e6ea}.bar:empty{display:none}
+.ov{position:fixed;inset:0;background:#f6f7f9;overflow:auto;padding:12px;z-index:5}
+.q{display:flex;align-items:center;gap:4px}.q button{width:36px;padding:6px;margin:0}.q span{min-width:48px;text-align:center}
+.rd{display:flex;gap:8px;align-items:center;padding:10px;background:#fff;border:1px solid #e3e6ea;border-radius:10px;margin:4px 0}.rd input{width:auto;margin:0}
+</style></head><body><div class="w" id="a">جاري التحميل…</div>
+<script>
+const sb=supabase.createClient("https://gbdojrwoqimohxbymifw.supabase.co","sb_publishable_wbRliSrTZ-G6fZcL7hjEGA_AOg-38LA");
+const $=s=>document.querySelector(s),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),m=n=>(Math.round(n*100)/100).toLocaleString('ar-EG');
+let D=null,cat='',q='',open=0,msg='',done=null,pay='cod',cart={},CT=[],WAU='';
+try{cart=JSON.parse(localStorage.sc2||'{}')}catch(e){}
+const sv=()=>{try{localStorage.sc2=JSON.stringify(cart)}catch(e){}};
+async function load(){
+ const r=await sb.rpc('p_catalog');
+ if(r.error||!r.data){$('#a').innerHTML='<p style="text-align:center;color:#b91c1c">تعذر تحميل المتجر، جرّب تاني بعد شوية</p>';return}
+ D=r.data;if(!D.cfg)D.cfg={};document.title=D.cfg.name||'المتجر';render();
+}
+const items=()=>{let L=D.items||[];if(D.cfg.hideout=='1')L=L.filter(x=>x.ok||(x.units||[]).some(u=>u.ok));return L};
+const opts=x=>[{id:'',name:x.unit=='k'?'كيلو':'قطعة',price:x.price,ok:x.ok}].concat((x.units||[]).map(u=>({id:u.id,name:u.name,price:u.price,ok:u.ok})));
+const tot=()=>Object.values(cart).reduce((s,c)=>s+c.q*c.p,0),cnt=()=>Object.keys(cart).length;
+const shipFee=()=>{const s=+(D.cfg.ship||0),f=+(D.cfg.free||0);return f>0&&tot()>=f?0:s};
+const payOpts=()=>{const P=(D.cfg.pays||'').split(','),o=[['cod','الدفع عند الاستلام']];if(P.includes('vf')&&D.cfg.vf)o.push(['vf','فودافون كاش']);if(P.includes('ip')&&D.cfg.ip)o.push(['ip','إنستاباي']);return o};
+function render(){
+ const cats=[...new Set(items().map(x=>x.cat||'أخرى'))];CT=cats;
+ $('#a').innerHTML=`<h1>${esc(D.cfg.name||'المتجر')}</h1>${D.cfg.note?`<div class="nt">${esc(D.cfg.note)}</div>`:''}<input placeholder="ابحث عن منتج…" value="${esc(q)}" oninput="q=this.value;list()"><div class="ch"><button class="${cat?'sec':''}" onclick="cat='';render()">الكل</button>${cats.map((c,j)=>`<button class="${cat==c?'':'sec'}" onclick="cat=CT[${j}];render()">${esc(c)}</button>`).join('')}</div><div id="l"></div><div class="bar" id="b"></div>`;
+ list();bar();
+}
+function list(){
+ const t=q.trim().toLowerCase(),L=items().map((x,i)=>[x,i]).filter(([x])=>(!cat||(x.cat||'أخرى')==cat)&&(!t||(x.name||'').toLowerCase().includes(t)));
+ $('#l').innerHTML=L.map(([x,i])=>{
+  const o=opts(x),any=o.some(z=>z.ok);
+  return `<div class="p"><div class="pr"><b>${esc(x.name)}</b>${o.length==1?`<span>${m(x.price)} ج${x.unit=='k'?' / كيلو':''}</span>`:''}</div>${any?`<div class="pr">${o.length>1?`<select id="u${i}">${o.map((z,j)=>`<option value="${j}" ${z.ok?'':'disabled'}>${esc(z.name)} — ${m(z.price)} ج${z.ok?'':' (غير متاح)'}</option>`).join('')}</select>`:'<span></span>'}<button style="width:auto;margin:0;padding:10px 16px" onclick="add(${i})">أضف +</button></div>`:'<span class="out">غير متاح حالياً</span>'}</div>`}).join('')||'<p class="mu" style="text-align:center">مفيش أصناف</p>';
+}
+function add(i){
+ const x=items()[i],o=opts(x),s=$('#u'+i),z=o[s?+s.value:0];if(!z||!z.ok)return;
+ const k=x.id+'|'+z.id,kg=x.unit=='k'&&!z.id,c=cart[k]||(cart[k]={id:x.id,u:z.id,n:x.name+(z.id?' - '+z.name:''),p:z.price,q:0,kg});
+ c.p=z.price;c.q=Math.round((c.q+(kg?0.5:1))*100)/100;sv();bar();
+}
+function chg(k,d){const c=cart[k];if(!c)return;c.q=Math.round((c.q+d*(c.kg?0.25:1))*100)/100;if(c.q<=0)delete cart[k];sv();bar();if(open)cartView()}
+function bar(){const b=$('#b');if(b)b.innerHTML=cnt()?`<button onclick="cartView()">🛒 السلة (${cnt()}) · ${m(tot())} ج</button>`:''}
+function cartView(){
+ open=1;let o=$('#ov');if(!o){o=document.createElement('div');o.id='ov';o.className='ov';document.body.appendChild(o)}
+ if(!payOpts().some(z=>z[0]==pay))pay='cod';
+ const sf=shipFee();
+ o.innerHTML=`<h1>سلتك</h1>${Object.entries(cart).map(([k,c])=>`<div class="p"><div class="pr"><b>${esc(c.n)}</b><span>${m(c.q*c.p)} ج</span></div><div class="pr"><span class="mu">${m(c.p)} ج${c.kg?' / كيلو':''}</span><span class="q"><button class="sec" onclick="chg('${k}',-1)">−</button><span>${c.q}${c.kg?' كجم':''}</span><button class="sec" onclick="chg('${k}',1)">+</button></span></div></div>`).join('')||'<p class="mu">السلة فاضية</p>'}
+ <div class="pr"><span>المنتجات</span><span>${m(tot())} ج</span></div>${D.cfg.ship&&+D.cfg.ship>0?`<div class="pr"><span>التوصيل</span><span>${sf?m(sf)+' ج':'مجاني'}</span></div>`:''}<div class="pr"><b>الإجمالي</b><b>${m(tot()+sf)} ج</b></div>
+ <input id="cn" placeholder="اسمك" value="${esc(localStorage.cn||'')}"><input id="cp" type="tel" placeholder="رقم تليفونك" value="${esc(localStorage.cph||'')}"><input id="ca" placeholder="العنوان بالتفصيل" value="${esc(localStorage.ca||'')}"><input id="cm" placeholder="ملاحظات (اختياري)">
+ <b>طريقة الدفع</b>${payOpts().map(([k,v])=>`<label class="rd"><input type="radio" name="pay" value="${k}" ${pay==k?'checked':''} onchange="pay='${k}'"> ${v}</label>`).join('')}
+ <div style="color:#b91c1c;font-size:14px">${esc(msg)}</div>
+ <button id="sb" onclick="send()">✅ تأكيد الطلب</button><button class="sec" onclick="closeCart()">رجوع للمتجر</button>`;
+}
+function closeCart(){open=0;done=null;msg='';const o=$('#ov');if(o)o.remove()}
+async function send(){
+ if(!cnt())return;
+ const n=$('#cn').value.trim(),p=$('#cp').value.trim(),a=$('#ca').value.trim(),nt=$('#cm').value.trim();
+ if(n.length<2||p.replace(/\D/g,'').length<8){msg='اكتب اسمك ورقم تليفونك';cartView();return}
+ if(!a){msg='اكتب عنوان التوصيل';cartView();return}
+ try{localStorage.cn=n;localStorage.cph=p;localStorage.ca=a}catch(e){}
+ const b=$('#sb');b.disabled=true;b.textContent='جاري الإرسال…';
+ const r=await sb.rpc('p_place_order',{p_name:n,p_phone:p,p_addr:a,p_note:nt,p_pay:pay,p_lines:Object.values(cart).map(c=>({id:c.id,u:c.u,q:c.q}))});
+ if(r.error||!r.data){msg=(r.error&&r.error.message)||'تعذر إرسال الطلب، جرّب تاني';cartView();return}
+ done=Object.assign({},r.data,{pay,n});cart={};sv();bar();doneView();
+}
+function doneView(){
+ const o=$('#ov'),d=done,c=D.cfg,wa=(c.wa||'').replace(/\D/g,'');
+ const PN={cod:'عند الاستلام',vf:'فودافون كاش',ip:'إنستاباي'};
+ const pi=d.pay=='vf'?`حوّل ${m(d.total)} ج على فودافون كاش رقم:<b style="font-size:20px;direction:ltr;display:block">${esc(c.vf)}</b>`:d.pay=='ip'?`حوّل ${m(d.total)} ج على إنستاباي:<b style="font-size:20px;direction:ltr;display:block">${esc(c.ip)}</b>`:`هتدفع ${m(d.total)} ج عند الاستلام.`;
+ const t='طلب رقم '+d.no+' - '+d.n+'\nالإجمالي: '+m(d.total)+' ج\nالدفع: '+PN[d.pay]+(d.pay!='cod'?'\n(هبعت صورة التحويل)':'');
+ WAU='https://wa.me/'+wa+'?text='+encodeURIComponent(t);
+ o.innerHTML=`<h1>✅ تم تسجيل طلبك</h1><div class="p" style="text-align:center"><div>رقم طلبك</div><b style="font-size:28px">#${d.no}</b><div class="mu">${m(d.sub)} ج${d.ship>0?' + توصيل '+m(d.ship)+' ج':''}</div><b>الإجمالي ${m(d.total)} ج</b></div><div class="p">${pi}<p class="mu">${d.pay!='cod'?'بعد التحويل ابعت صورة التحويل على واتساب برقم الطلب عشان نأكد.':'هنكلمك لتأكيد الطلب.'}</p></div>${wa?`<button onclick="location.href=WAU">📲 ${d.pay!='cod'?'ابعت صورة التحويل على واتساب':'تأكيد على واتساب'}</button>`:''}<button class="sec" onclick="closeCart()">رجوع للمتجر</button>`;
+}
+load();
+</script></body></html>
