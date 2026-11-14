@@ -19,7 +19,7 @@ button{background:#0f766e;color:#fff;border:0;font-weight:600}button.sec{backgro
 .rd{display:flex;gap:8px;align-items:center;padding:10px;background:#fff;border:1px solid #e3e6ea;border-radius:10px;margin:4px 0}.rd input{width:auto;margin:0}
 </style></head><body><div class="w" id="a">جاري التحميل…</div>
 <script>
-const sb=supabase.createClient("https://gbdojrwoqimohxbymifw.supabase.co","sb_publishable_wbRliSrTZ-G6fZcL7hjEGA_AOg-38LA");
+onerror=(m,s,l)=>{document.getElementById('a').innerHTML='<pre style="direction:ltr;white-space:pre-wrap;padding:12px">'+m+' line '+l+'</pre>'};const sb=supabase.createClient("https://gbdojrwoqimohxbymifw.supabase.co","sb_publishable_wbRliSrTZ-G6fZcL7hjEGA_AOg-38LA");
 const $=s=>document.querySelector(s),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),m=n=>(Math.round(n*100)/100).toLocaleString('ar-EG');
 let D=null,cat='',q='',open=0,msg='',done=null,pay='cod',cart={},CT=[],WAU='',PF=null;
 try{cart=JSON.parse(localStorage.sc2||'{}')}catch(e){}
