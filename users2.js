@@ -1,10 +1,10 @@
+const FN=U+'/functions/v1/swift-api';
 uCall=async function(b){
  try{
   const {data:{session}}=await sb.auth.getSession();
-  const r=await fetch(U+'/functions/v1/users',{method:'POST',body:JSON.stringify(Object.assign({token:session?session.access_token:''},b))});
+  const r=await fetch(FN,{method:'POST',body:JSON.stringify(Object.assign({token:session?session.access_token:''},b))});
   let j={};try{j=await r.json()}catch(e){}
-  if(!r.ok)return{error:j.error||j.message||('خطأ '+r.status)};
-  if(j.error)return{error:j.error};
+  if(!r.ok||j.error)return{error:(j.error||j.message||'خطأ')+' ['+r.status+']'};
   return{data:j};
  }catch(e){return{error:'ما قدرتش أوصل للسيرفر: '+e.message}}
 };
