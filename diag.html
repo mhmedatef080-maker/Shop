@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فحص</title>
+<style>body{font:16px system-ui,Tahoma;padding:14px;line-height:2}.ok{color:#0a7a3d}.no{color:#b91c1c}code{direction:ltr;display:inline-block;background:#eee;padding:0 4px}</style></head>
+<body><h3>فحص المتجر</h3><div id="o">…</div>
+<script>
+var o=document.getElementById('o');
+function L(t,g){o.innerHTML+='<div class="'+(g?'ok':'no')+'">'+(g?'✓ ':'✗ ')+t+'</div>'}
+L('الجافاسكريبت شغال',1);
+fetch('store.html?x='+Date.now()).then(function(r){return r.text()}).then(function(t){
+ L('ملف store.html وصل: '+t.length+' حرف',t.length>10000);
+ L('فيه onerror (النسخة الجديدة)',t.indexOf('onerror')>-1);
+ L('فيه store-app.js',t.indexOf('store-app.js')>-1);
+ L('آخر الملف سليم',/<\/script>\s*<\/body><\/html>\s*$/.test(t));
+ o.innerHTML+='<div>آخر الملف: <code>'+t.slice(-50).replace(/</g,'&lt;')+'</code></div>';
+}).catch(function(e){L('ملف store.html مش موجود: '+e)});
+var s=document.createElement('script');
+s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
+s.onload=function(){
+ L('مكتبة supabase اتحملت',1);
+ var c=supabase.createClient('https://gbdojrwoqimohxbymifw.supabase.co','sb_publishable_wbRliSrTZ-G6fZcL7hjEGA_AOg-38LA');
+ var t=setTimeout(function(){L('قاعدة البيانات مردتش بعد 10 ثواني')},10000);
+ c.rpc('p_catalog').then(function(r){clearTimeout(t);
+  if(r.error)L('خطأ من قاعدة البيانات: '+r.error.message);
+  else L('قاعدة البيانات ردت: '+((r.data&&r.data.items)||[]).length+' صنف',1);
+ }).catch(function(e){clearTimeout(t);L('فشل الاتصال: '+e)});
+};
+s.onerror=function(){L('مكتبة supabase ما اتحملتش (النت أو الحجب)')};
+document.head.appendChild(s);
+navigator.serviceWorker&&navigator.serviceWorker.getRegistrations().then(function(r){o.innerHTML+='<div>service workers مسجلة: '+r.length+'</div>'});
+</script></body></html>
