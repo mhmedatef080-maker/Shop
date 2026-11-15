@@ -1,7 +1,7 @@
 function render(){
  const cats=[...new Set(items().map(x=>x.cat||'أخرى'))];CT=cats;
  const hi=PF?`<div class="mu" style="text-align:center">أهلاً ${esc(PF.n)} · <a href="#" onclick="gate();return false">تغيير</a></div>`:'';
- $('#a').innerHTML=`<h1>${esc(D.cfg.name||'المتجر')}</h1>${hi}${D.cfg.note?`<div class="nt">${esc(D.cfg.note)}</div>`:''}<input placeholder="ابحث عن منتج…" value="${esc(q)}" oninput="q=this.value;list()"><div class="ch"><button class="${cat?'sec':''}" onclick="cat='';render()">الكل</button>${cats.map((c,j)=>`<button class="${cat==c?'':'sec'}" onclick="cat=CT[${j}];render()">${esc(c)}</button>`).join('')}</div><div id="l"></div><div class="bar" id="b"></div>`;
+ $('#a').innerHTML=`<h1>${esc(D.cfg.name||'المتجر')}</h1>${hi}${D.cfg.note?`<div class="nt">${esc(D.cfg.note)}</div>`:''}<input placeholder="ابحث عن منتج…" value="${esc(q)}" oninput="q=this.value;window.list()"><div class="ch"><button class="${cat?'sec':''}" onclick="cat='';render()">الكل</button>${cats.map((c,j)=>`<button class="${cat==c?'':'sec'}" onclick="cat=CT[${j}];render()">${esc(c)}</button>`).join('')}</div><div id="l"></div><div class="bar" id="b"></div>`;
  list();bar();
 }
 function list(){
@@ -27,4 +27,4 @@ function cartView(){
  <b>طريقة الدفع</b>${payOpts().map(([k,v])=>`<label class="rd"><input type="radio" name="pay" value="${k}" ${pay==k?'checked':''} onchange="pay='${k}'"> ${v}</label>`).join('')}
  <div style="color:#b91c1c;font-size:14px">${esc(msg)}</div>
  <button id="sb" onclick="send()">✅ تأكيد الطلب</button><button class="sec" onclick="closeCart()">رجوع للمتجر</button>`;
-                                                                        }
+}
