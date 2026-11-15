@@ -1,27 +1,21 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0f766e"><title>المتجر</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#1b1f24;font:16px system-ui,Tahoma,Arial,sans-serif}
-.w{max-width:600px;margin:auto;padding:12px 12px 90px}
-h1{font-size:20px;margin:8px 0;text-align:center}.nt{text-align:center;color:#0f766e;font-size:14px;margin-bottom:8px}
-input,select,button{font:inherit;width:100%;padding:11px;border-radius:10px;border:1px solid #e3e6ea;background:#fff;color:#1b1f24;margin:4px 0}
-button{background:#0f766e;color:#fff;border:0;font-weight:600}button.sec{background:#fff;color:#1b1f24;border:1px solid #e3e6ea}
-.ch{display:flex;gap:6px;overflow-x:auto;padding:4px 0}.ch button{width:auto;white-space:nowrap;padding:8px 14px;margin:0}
-.p{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;margin:8px 0;display:flex;flex-direction:column;gap:6px}
-.pr{display:flex;justify-content:space-between;align-items:center;gap:8px}.mu{color:#6b7280;font-size:13px}.out{color:#b91c1c;font-size:14px}
-.bar{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#fff;border-top:1px solid #e3e6ea}.bar:empty{display:none}
-.ov{position:fixed;inset:0;background:#f6f7f9;overflow:auto;padding:12px;z-index:5}
-.gt{position:fixed;inset:0;background:#f6f7f9;z-index:9;display:flex;align-items:center;justify-content:center;padding:16px}.gt>div{background:#fff;border:1px solid #e3e6ea;border-radius:16px;padding:18px;width:100%;max-width:420px}
-.q{display:flex;align-items:center;gap:4px}.q button{width:36px;padding:6px;margin:0}.q span{min-width:48px;text-align:center}
-.rd{display:flex;gap:8px;align-items:center;padding:10px;background:#fff;border:1px solid #e3e6ea;border-radius:10px;margin:4px 0}.rd input{width:auto;margin:0}
-</style></head><body><div class="w" id="a">جاري التحميل…</div>
-<script>
-onerror=function(m,s,l){document.getElementById("a").innerHTML='<pre style="direction:ltr;white-space:pre-wrap;padding:12px">'+m+" "+(s||"").split("/").pop()+" line "+l+"</pre>"};
-</script>
-<script src="st1.js"></script>
-<script src="st2.js"></script>
-<script src="st3.js"></script>
-<script src="store-app.js"></script></body></html>
+(function(){
+ var l=document.createElement('link');l.rel='manifest';l.href='store.webmanifest';document.head.appendChild(l);
+ if('serviceWorker' in navigator)navigator.serviceWorker.register('store-sw.js',{scope:'/Shop/store.html'}).catch(function(){});
+ var dp=null,st=document.createElement('div');
+ st.style.cssText='position:fixed;top:0;left:0;right:0;z-index:10;background:#0f766e;color:#fff;padding:10px;text-align:center;font-size:15px;display:none';
+ document.body.appendChild(st);
+ function hide(){st.style.display='none'}
+ var standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+ if(standalone)return;
+ addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();dp=e;
+  st.innerHTML='ثبّت المتجر على موبايلك <button id="ib" style="width:auto;margin:0 8px;padding:6px 14px;background:#fff;color:#0f766e;border-radius:8px">تثبيت</button><span id="ix" style="padding:6px">✕</span>';
+  st.style.display='block';
+  document.getElementById('ib').onclick=function(){dp.prompt();hide()};
+  document.getElementById('ix').onclick=hide;
+ });
+ if(/iphone|ipad/i.test(navigator.userAgent)){
+  st.innerHTML='للتثبيت: اضغط مشاركة ثم "إضافة إلى الشاشة الرئيسية" <span id="ix" style="padding:6px">✕</span>';
+  st.style.display='block';document.getElementById('ix').onclick=hide;
+ }
+})();
