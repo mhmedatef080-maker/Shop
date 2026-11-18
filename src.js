@@ -11,7 +11,7 @@ const O0=ordInv;
 ordInv=function(no){O0(no);SC=cart};
 const D0=done;
 done=function(){
- const store=SC&&cart===SC&&cart.length>0,by=localStorage.pn||'',L0=S.q.length;
+ const store=SC&&cart===SC&&cart.length>0,by=localStorage.pn||(O()?'المالك':''),L0=S.q.length;
  const p=D0();
  const e=S.q.slice(L0).find(o=>o.k=='inv');
  if(e){
@@ -19,18 +19,20 @@ done=function(){
   if(S.rp&&S.rp[0]&&S.rp[0].uid==e.v.p_uid){S.rp[0].by=store?'المتجر الإلكتروني':by;sv()}
  }
  if(store)SC=null;
+ setTimeout(()=>{sync()},2500);
  return p;
 };
-const R0=sb.rpc.bind(sb);
-sb.rpc=function(n,p){
- const q=R0(n,p);
- if(n!='p_apply'||!p)return q;
- const th=q.then.bind(q);
- q.then=(a,b)=>th(async r=>{
-  try{const t=TG[p.p_uid];if(r&&!r.error&&t){await R0('p_inv_tag',{p_uid:String(p.p_uid),p_seller:t.s||'',p_src:t.r||''});delete TG[p.p_uid];stg()}}catch(e){}
-  return a?a(r):r;
- },b);
- return q;
+const Y0=sync;
+sync=async function(){
+ await Y0();
+ if(S.q.length||!navigator.onLine)return;
+ for(const u of Object.keys(TG)){
+  const t=TG[u];
+  try{const r=await sb.rpc('p_inv_tag',{p_uid:u,p_seller:t.s||'',p_src:t.r||''});
+   if(r&&r.error){S.err='tag ← '+r.error.message;sv();break}
+   delete TG[u];stg();
+  }catch(e){break}
+ }
 };
 const F0=sb.from.bind(sb);
 sb.from=function(t){
