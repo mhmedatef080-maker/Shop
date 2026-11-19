@@ -12,10 +12,12 @@ function view(){
   const k=nm(r),o=g[k]||(g[k]={n:0,s:0,p:0,l:[]}),t=+r.total*TY[r.type],c=R.cg[r.uid];
   o.n++;o.s+=t;o.l.push(r);if(c){o.p+=t-(+c.cogs);o.k=1}T+=t;N++;
  });
- const ks=Object.keys(g).sort((a,b)=>g[b].s-g[a].s);
+ const ks=Object.keys(g).sort((a,b)=>g[b].s-g[a].s),rg={};
+ R.rows.filter(r=>r.type=='rsell').forEach(r=>{const k=nm(r),o=rg[k]||(rg[k]={n:0,s:0,l:[]});o.n++;o.s+=+r.total;o.l.push(r)});
+ const rh=Object.keys(rg).map(k=>{const o=rg[k],op=R.open=='r:'+k;return `<div class="it" style="flex-wrap:wrap" data-o="${op?'':'r:'+esc(k)}" onclick="R.open=this.dataset.o||null;render()"><span>${esc(k)}<br><span class="mu">${o.n} مرتجع</span></span><b>${m(o.s)} ج</b>${op?`<div style="flex:1 1 100%">${o.l.map(r=>`<div class="it"><span class="mu">#${r.no} ${new Date(r.created_at).toLocaleString('ar-EG')}</span><span>${m(+r.total)} ج</span></div>`).join('')}</div>`:''}</div>`}).join('');
  return h+`<div class="c"><b>مبيعات كل بائع</b>${ks.map(k=>{const o=g[k],op=R.open==k;
   return `<div class="it" style="flex-wrap:wrap" onclick="R.open=${op?'null':'this.dataset.k'};render()" data-k="${esc(k)}"><span>${esc(k)}<br><span class="mu">${o.n} فاتورة${o.k?" · ربح "+m(o.p)+" ج":""}</span></span><b>${m(o.s)} ج</b>${op?`<div style="flex:1 1 100%">${o.l.map(r=>`<div class="it"><span class="mu">#${r.no} ${new Date(r.created_at).toLocaleString('ar-EG')}</span><span>${m(+r.total*TY[r.type])} ج</span></div>`).join('')}</div>`:''}</div>`}).join('')||'<p class="mu">مفيش مبيعات في الفترة دي</p>'}
- <div class="it"><b>الإجمالي</b><b>${m(T)} ج · ${N} فاتورة</b></div></div>`;
+ <div class="it"><b>الإجمالي</b><b>${m(T)} ج · ${N} فاتورة</b></div></div><div class="c"><b>المرتجعات حسب البائع</b>${rh||'<p class="mu">مفيش مرتجعات في الفترة دي</p>'}</div>`;
 }
 vRep=function(){
  if(R.sub=='sel')return view();
