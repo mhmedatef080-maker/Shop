@@ -13,15 +13,16 @@ function list(){
 function add(i){
  const x=items()[i],o=opts(x),s=$('#u'+i),z=o[s?+s.value:0];if(!z||!z.ok)return;
  const k=x.id+'|'+z.id,kg=x.unit=='k'&&!z.id,c=cart[k]||(cart[k]={id:x.id,u:z.id,n:x.name+(z.id?' - '+z.name:''),p:z.price,q:0,kg});
- c.p=z.price;c.q=Math.round((c.q+(kg?0.5:1))*100)/100;sv();bar();
+ c.p=z.price;c.q=Math.round((c.q+(kg?0.5:1))*1000)/1000;sv();bar();
 }
-function chg(k,d){const c=cart[k];if(!c)return;c.q=Math.round((c.q+d*(c.kg?0.25:1))*100)/100;if(c.q<=0)delete cart[k];sv();bar();if(open)cartView()}
+function chg(k,d){const c=cart[k];if(!c)return;c.q=Math.round((c.q+d*(c.kg?0.1:1))*1000)/1000;if(c.q<=0.0001)delete cart[k];sv();bar();if(open)cartView()}
+function gset(k,v){const c=cart[k],g=Math.round(+v);if(!c)return;if(!(g>0))delete cart[k];else c.q=g/1000;sv();bar();if(open)cartView()}
 function bar(){const b=$('#b');if(b)b.innerHTML=cnt()?`<button onclick="cartView()">🛒 السلة (${cnt()}) · ${m(tot())} ج</button>`:''}
 function cartView(){
  open=1;let o=$('#ov');if(!o){o=document.createElement('div');o.id='ov';o.className='ov';document.body.appendChild(o)}
  if(!payOpts().some(z=>z[0]==pay))pay='cod';
  const sf=shipFee();
- o.innerHTML=`<h1>سلتك</h1>${Object.entries(cart).map(([k,c])=>`<div class="p"><div class="pr"><b>${esc(c.n)}</b><span>${m(c.q*c.p)} ج</span></div><div class="pr"><span class="mu">${m(c.p)} ج${c.kg?' / كيلو':''}</span><span class="q"><button class="sec" onclick="chg('${k}',-1)">−</button><span>${c.q}${c.kg?' كجم':''}</span><button class="sec" onclick="chg('${k}',1)">+</button></span></div></div>`).join('')||'<p class="mu">السلة فاضية</p>'}
+ o.innerHTML=`<h1>سلتك</h1>${Object.entries(cart).map(([k,c])=>`<div class="p"><div class="pr"><b>${esc(c.n)}</b><span>${m(c.q*c.p)} ج</span></div><div class="pr"><span class="mu">${m(c.p)} ج${c.kg?' / كيلو':''}</span><span class="q"><button class="sec" onclick="chg('${k}',-1)">−</button>${c.kg?`<span><input type="number" inputmode="numeric" style="width:80px;margin:0;padding:8px;text-align:center" value="${Math.round(c.q*1000)}" onchange="gset('${k}',this.value)"> جم</span>`:`<span>${c.q}</span>`}<button class="sec" onclick="chg('${k}',1)">+</button></span></div></div>`).join('')||'<p class="mu">السلة فاضية</p>'}
  <div class="pr"><span>المنتجات</span><span>${m(tot())} ج</span></div>${D.cfg.ship&&+D.cfg.ship>0?`<div class="pr"><span>التوصيل</span><span>${sf?m(sf)+' ج':'مجاني'}</span></div>`:''}<div class="pr"><b>الإجمالي</b><b>${m(tot()+sf)} ج</b></div>
  <input id="cn" placeholder="اسمك" value="${esc(PF?PF.n:(localStorage.cn||''))}"><input id="cph" type="tel" inputmode="numeric" placeholder="رقم موبايلك" value="${esc(PF?PF.p:(localStorage.cph||''))}"><input id="ca" placeholder="العنوان بالتفصيل" value="${esc(localStorage.ca||'')}"><input id="cm" placeholder="ملاحظات (اختياري)">
  <b>طريقة الدفع</b>${payOpts().map(([k,v])=>`<label class="rd"><input type="radio" name="pay" value="${k}" ${pay==k?'checked':''} onchange="pay='${k}'"> ${v}</label>`).join('')}
