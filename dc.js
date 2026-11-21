@@ -8,12 +8,13 @@ async function load(){
 const nm=id=>{const x=S.items.find(i=>i.id==id);return x?x.name:'؟'};
 const lst=()=>CL.map(b=>'<div class="it" style="flex-wrap:wrap"><span><b>'+esc(b.name)+'</b><br><span class="mu">'+(b.comps||[]).map(p=>p.q+' × '+esc(nm(p.id))).join(' + ')+'</span></span><span>'+m(b.price)+' ج <button class="del" onclick="dcDel(\''+b.id+'\')">✕</button></span></div>').join('')||'<p class="mu">مفيش باقات</p>';
 const opt=()=>'<option value="">— صنف —</option>'+S.items.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+const row=()=>'<div class="r"><select class="dbs">'+opt()+'</select><input class="dbq" type="number" inputmode="decimal" placeholder="الكمية"></div>';
+window.dcRow=()=>{const e=$('#dbr');if(e)e.insertAdjacentHTML('beforeend',row())};
 function card(){
  const c=S.cfg||{};
  return '<div class="c" id="dcc"><b>خصم على الطلب (المتجر)</b><div class="r"><input id="dmn" type="number" inputmode="decimal" placeholder="لو الطلب فوق (ج)" value="'+esc(c.dmin||'')+'"><input id="dpc" type="number" inputmode="decimal" placeholder="نسبة الخصم %" value="'+esc(c.dpct||'')+'"></div><button onclick="dcSave()">حفظ الخصم</button>'+
  '<b style="display:block;margin-top:10px">باقات المتجر</b><div id="dcl">'+lst()+'</div><input id="dbn" placeholder="اسم الباقة" value="'+esc(F.n)+'"><input id="dbp" type="number" inputmode="decimal" placeholder="سعر الباقة" value="'+esc(F.p)+'">'+
- [0,1,2].map(i=>'<div class="r"><select id="dbs'+i+'">'+opt()+'</select><input id="dbq'+i+'" type="number" inputmode="decimal" placeholder="الكمية"></div>').join('')+
- '<button onclick="dcAdd()">إضافة باقة</button><p class="e">'+esc(MS)+'</p></div>';
+ '<div id="dbr">'+[0,1,2].map(()=>row()).join('')+'</div><button class="sec" onclick="dcRow()">+ صنف تاني</button> <button onclick="dcAdd()">إضافة باقة</button><p class="e">'+esc(MS)+'</p></div>';
 }
 window.dcSave=async()=>{
  const rows=[{key:'dmin',val:$('#dmn').value||'0'},{key:'dpct',val:$('#dpc').value||'0'}];
@@ -22,7 +23,7 @@ window.dcSave=async()=>{
  render();
 };
 window.dcAdd=async()=>{
- const comps=[0,1,2].map(i=>({id:$('#dbs'+i).value,q:+$('#dbq'+i).value})).filter(p=>p.id&&p.q>0),n=$('#dbn').value.trim(),pr=+$('#dbp').value;
+ const ss=[...document.querySelectorAll('#dbr .dbs')],qq=[...document.querySelectorAll('#dbr .dbq')],comps=ss.map((e,i)=>({id:e.value,q:+qq[i].value})).filter(p=>p.id&&p.q>0),n=$('#dbn').value.trim(),pr=+$('#dbp').value;
  F.n=n;F.p=$('#dbp').value;
  if(!n||!(pr>0)||comps.length<2){MS='اكتب الاسم والسعر وصنفين على الأقل';render();return}
  const r=await sb.from('p_combos').insert({name:n,price:pr,comps});
