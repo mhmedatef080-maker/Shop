@@ -20,19 +20,24 @@ function card(r){
 window.tkClose=()=>{const o=$('#tkv');if(o)o.remove()};
 window.tkOpen=async()=>{
  let o=$('#tkv');if(!o){o=document.createElement('div');o.id='tkv';o.className='ov';o.style.zIndex=8;document.body.appendChild(o)}
- const a=ls();
+ const a=ls(),ph=(PF&&PF.p)||localStorage.cph||'';
  o.innerHTML='<h1>📦 طلباتي</h1><p class="mu" style="text-align:center">جاري التحميل…</p>';
- const R=await Promise.all(a.map(x=>sb.rpc('p_track',{p_no:x.no,p_phone:x.p}).then(r=>r&&r.data?r.data:null,()=>null)));
- const L=R.filter(Boolean);
- o.innerHTML='<h1>📦 طلباتي</h1>'+(L.map(card).join('')||'<p class="mu" style="text-align:center">مفيش طلبات على الجهاز ده. دوّر برقم الطلب والموبايل:</p>')+
- '<b>دوّر على طلب</b><input id="tkn" type="number" inputmode="numeric" placeholder="رقم الطلب"><input id="tkp" type="tel" inputmode="numeric" placeholder="رقم موبايلك" value="'+esc(localStorage.cph||'')+'"><div id="tke" style="color:#b91c1c;font-size:14px"></div><button onclick="tkFind()">بحث</button><button class="sec" onclick="tkOpen()">تحديث</button><button class="sec" onclick="tkClose()">رجوع للمتجر</button>';
+ const R=await Promise.all(a.map(x=>sb.rpc('p_track',{p_no:x.no,p_phone:x.p}).then(r=>r&&r.data?[r.data]:[],()=>[])).concat(ph?[sb.rpc('p_my_orders',{p_phone:ph}).then(r=>r&&r.data?r.data:[],()=>[])]:[]));
+ const M={};R.forEach(g=>g.forEach(r=>{M[r.no]=r}));
+ const L=Object.values(M).sort((x,y)=>y.no-x.no);
+ o.innerHTML='<h1>📦 طلباتي</h1>'+(L.map(card).join('')||'<p class="mu" style="text-align:center">مفيش طلبات لحد دلوقتي. اكتب موبايلك تحت:</p>')+
+ '<b>دوّر على طلباتك</b><input id="tkp" type="tel" inputmode="numeric" placeholder="رقم موبايلك" value="'+esc(ph)+'"><input id="tkn" type="number" inputmode="numeric" placeholder="رقم الطلب (اختياري)"><div id="tke" style="color:#b91c1c;font-size:14px"></div><button onclick="tkFind()">بحث</button><button class="sec" onclick="tkOpen()">تحديث</button><button class="sec" onclick="tkClose()">رجوع للمتجر</button>';
 };
 window.tkFind=async()=>{
  const n=+$('#tkn').value,p=$('#tkp').value.trim();
- if(!n||p.replace(/\D/g,'').length<8){$('#tke').textContent='اكتب رقم الطلب وموبايلك';return}
- const r=await sb.rpc('p_track',{p_no:n,p_phone:p});
- if(!r||!r.data){$('#tke').textContent='ما لقيناش طلب بالبيانات دي';return}
- const a=ls().filter(x=>x.no!=n);a.unshift({no:n,p});sv2(a);tkOpen();
+ if(p.replace(/\D/g,'').length<8){$('#tke').textContent='اكتب رقم موبايلك صح';return}
+ if(n){const r=await sb.rpc('p_track',{p_no:n,p_phone:p});
+  if(!r||!r.data){$('#tke').textContent='ما لقيناش طلب بالبيانات دي';return}
+  const a=ls().filter(x=>x.no!=n);a.unshift({no:n,p});sv2(a)}
+ else{const r=await sb.rpc('p_my_orders',{p_phone:p});
+  if(!r||!r.data||!r.data.length){$('#tke').textContent='مفيش طلبات على الرقم ده';return}
+  try{localStorage.cph=p}catch(e){}}
+ tkOpen();
 };
 const r0=render;
 render=function(){
