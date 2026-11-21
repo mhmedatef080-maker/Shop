@@ -34,8 +34,9 @@ cartView=function(){
 };
 window.addCombo=i=>{
  const b=CB[i];if(!b)return;
- for(const p of b.comps){const x=items().find(z=>z.id==p.id);if(!x||!x.ok){msg='الباقة فيها صنف غير متاح';return}}
- b.comps.forEach(p=>{const x=items().find(z=>z.id==p.id),k=x.id+'|',c=cart[k]||(cart[k]={id:x.id,u:'',n:x.name,p:x.price,q:0,kg:x.unit=='k'});c.q=Math.round((c.q+p.q)*1000)/1000;chg(k,0)});
+ const G=z=>(D.items||[]).find(x=>x.id==z.id);
+ for(const p of b.comps){const x=G(p);if(!x||!x.ok){alert('الباقة فيها صنف غير متاح حالياً: '+(x?x.name:p.n));return}}
+ b.comps.forEach(p=>{const x=G(p),k=x.id+'|',c=cart[k]||(cart[k]={id:x.id,u:'',n:x.name,p:x.price,q:0,kg:x.unit=='k'});c.q=Math.round((c.q+p.q)*1000)/1000;chg(k,0)});
  sv();bar();
 };
 const l0=list;
