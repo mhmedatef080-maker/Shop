@@ -15,20 +15,20 @@ function ops(id){
  const o=[];
  (R.rows||[]).forEach(r=>{
   if(!TY[r.type])return;
-  (r.lines||[]).forEach(l=>{if(l.id==id)o.push({r,l,sg:TY[r.type]})});
+  (r.lines||[]).forEach((l,i)=>{if(l.id!=id)return;const g=R.cg[r.uid],c=g&&g.det&&g.det[i]!=null?+g.det[i]:null,sg=TY[r.type];o.push({r,l,sg,pf:c==null?null:sg*((l.uq!=null?+l.uq:+l.q)*(+l.p)-(+l.q)*c)})});
  });
  return o;
 }
 function body(){
  const it=S.items.find(x=>x.id==P.id);
  if(!it)return '';
- const o=ops(P.id);let q=0,rev=0;
- o.forEach(z=>{const uq=z.l.uq!=null?+z.l.uq:+z.l.q;q+=z.sg*(+z.l.q);rev+=z.sg*uq*(+z.l.p)});
+ const o=ops(P.id);let q=0,rev=0,pf=0,nc=0;
+ o.forEach(z=>{const uq=z.l.uq!=null?+z.l.uq:+z.l.q;q+=z.sg*(+z.l.q);rev+=z.sg*uq*(+z.l.p);if(z.pf==null)nc++;else pf+=z.pf});
  const lst=o.map(z=>{
   const l=z.l,uq=l.uq!=null?+l.uq:+l.q;
-  return `<div class="it"><span>${dt(z.r.created_at)}<br><span class="mu">فاتورة ${z.r.no||''}${z.sg<0?' · مرتجع':''}${z.r.cust_name?' · '+esc(z.r.cust_name):''}</span></span><span style="text-align:left" class="${z.sg<0?'e':''}">${z.sg<0?'−':''}${qr(uq)}${l.u?' '+esc(l.u):ku(it)} × ${m(l.p)}<br><span class="mu">${m(z.sg*uq*(+l.p))} ج</span></span></div>`;
+  return `<div class="it"><span>${dt(z.r.created_at)}<br><span class="mu">فاتورة ${z.r.no||''}${z.sg<0?' · مرتجع':''}${z.r.cust_name?' · '+esc(z.r.cust_name):''}</span></span><span style="text-align:left" class="${z.sg<0?'e':''}">${z.sg<0?'−':''}${qr(uq)}${l.u?' '+esc(l.u):ku(it)} × ${m(l.p)}<br><span class="mu">${m(z.sg*uq*(+l.p))} ج · ربح ${z.pf==null?'؟':m(z.pf)}</span></span></div>`;
  }).join('')||'<p class="mu">مفيش مبيعات للصنف ده في الفترة المختارة</p>';
- return `<div class="c"><b>${esc(it.name)}</b><div class="it"><span>عدد العمليات</span><b>${o.length}</b></div><div class="it"><span>الكمية المباعة (صافي)</span><b>${qr(q)}${ku(it)}</b></div><div class="it"><span>الإيراد</span><b>${m(rev)} ج</b></div><button class="sec" onclick="MVX.id='';render()">صنف تاني</button></div><div class="c">${lst}</div>`;
+ return `<div class="c"><b>${esc(it.name)}</b><div class="it"><span>عدد العمليات</span><b>${o.length}</b></div><div class="it"><span>الكمية المباعة (صافي)</span><b>${qr(q)}${ku(it)}</b></div><div class="it"><span>الإيراد</span><b>${m(rev)} ج</b></div><div class="it"><span>الربح</span><b class="${pf<0?'e':'ok'}">${m(pf)} ج</b></div>${nc?`<p class="mu">${nc} عملية من غير تكلفة (متحسبتش في الربح)</p>`:''}<button class="sec" onclick="MVX.id='';render()">صنف تاني</button></div><div class="c">${lst}</div>`;
 }
 function view(){
  const sv0=R.sub,ld0=R.loading;R.sub='sales';R.loading=1;
